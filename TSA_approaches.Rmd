@@ -19,8 +19,8 @@ library(tidyverse)
 ## Getting the data into R
 
 ```{r base_get_data}
-data_df <- read.csv('https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',
-                    stringsAsFactors = T)
+data_df <- read.csv(
+  'https://raw.githubusercontent.com/aktum/sample_lesson_ts/master/Time_Series_Analysis_In_R/data.csv', stringsAsFactors = T)
 
 data_df$date <- as.Date.character(data_df$date)
 summary(data_df)
@@ -30,7 +30,7 @@ summary(data_df)
 ```{r tidy_get_data}
 data_tbl <-
   read_csv(
-    'https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',
+    'https://raw.githubusercontent.com/aktum/sample_lesson_ts/master/Time_Series_Analysis_In_R/data.csv',
     col_types = cols(
       date = col_date(),
       country_region = col_character(),
@@ -56,9 +56,9 @@ filtered_data_df <- data_df[which(data_df$country_region == 'United Kingdom' &
                               data_df$sub_region_1 == 'Greater London' &
                                 data_df$sub_region_2 == 'City of London'),]
 
-colnames(filtered_data_df)[9:14] <- gsub("_percent_change_from_baseline",
+colnames(filtered_data_df) <- gsub("_percent_change_from_baseline",
                                       "",
-                                      colnames(filtered_data_df)[9:14])
+                                      colnames(filtered_data_df))
 
 filtered_data_df <- filtered_data_df[,which(colnames(filtered_data_df) == 'date'):
                                        ncol(filtered_data_df)]
@@ -108,7 +108,7 @@ data_tsbl %>%
 ## ACF plots
 
 ```{r zoo_acf}
-acf(data_ts)
+acf(data_ts, na.action = na.pass)
 ```
 
 ```{r tsbl_acf}
@@ -126,16 +126,3 @@ tseries::kpss.test(data_ts)
 data_tsbl %>% 
   features(parks, unitroot_kpss)
 ```
-
-
-## Xts plotting
-
-```{r xts}
-data_xts <- xts(x = filtered_data_df$parks,order.by = filtered_data_df$date)
-plot(data_xts)
-```
-
-```{r}
-plot(data_xts['2020-06-01/'])
-```
-

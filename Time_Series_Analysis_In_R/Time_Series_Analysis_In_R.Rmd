@@ -6,7 +6,6 @@ runtime: shiny_prerendered
 
 ```{r setup, include=FALSE}
 library(learnr)
-tutorial_options(exercise.checker = gradethis::grade_learnr)
 
 knitr::opts_chunk$set(echo = TRUE)
 
@@ -19,7 +18,6 @@ library(tseries)
 library(tsibble)
 library(feasts)
 library(tidyverse)
-remotes::install_github("rstudio-education/gradethis")
 
 data_tbl <-
   read_csv(
@@ -34,10 +32,10 @@ data_tbl <-
       parks_percent_change_from_baseline  = col_double(),
       transit_stations_percent_change_from_baseline = col_double(),
       workplaces_percent_change_from_baseline = col_double(),
-      residential_percent_change_from_baseline = col_double(),
-      .default = '_'
+      residential_percent_change_from_baseline = col_double()
     )
-  )
+  ) %>% 
+  rename_with(~gsub("_percent_change_from_baseline","",.x))
 
 data_df <- as.data.frame(data_tbl)
 data_df$date <- as.character(data_df$date)
@@ -46,10 +44,10 @@ data_df$date <- as.character(data_df$date)
 
 ## Getting data into R
 
-Please answer the questions below about ```readr::read_csv``` and ```base::read.csv```. You can use the R console to get access to documentation, e.g. ```?readr::read_csv```.
+Please answer the questions below about ```readr::read_csv``` and ```utils::read.csv```. You can use the R console to get access to documentation, e.g. ```?readr::read_csv```.
 
 ```{r scratchpad-1, exercise = TRUE}
-
+# You don't have to import any data here. This console is for help access only.
 ```
 
 
@@ -82,26 +80,26 @@ data_tbl %>%
   distinct(sub_region_2)
 ```
 
-```{r filter-tbl, exercise = TRUE, eval=TRUE}
+Pick one of the sub regions from above and use it to filter the data using tidy approach below.
+
+```{r filter-tbl, exercise = TRUE, eval=TRUE,exercise.lines = 5}
 data_tbl %>% 
   filter(country_region == 'United Kingdom',
          sub_region_1 == 'Greater London'
          
-         )
+         ) #%>% distinct(sub_region_2)
 ```
 
-```{r filter-tbl-check}
-grade_result(
-  pass_if(nrow(distinct(select(.result, sub_region_2))) == 1)
-)
-```
+Use the same sub region to filter the data using base R.
 
-```{r filter-base, exercise = TRUE, eval = TRUE}
+```{r filter-base, exercise = TRUE, eval = TRUE, exercise.lines = 4}
 data_df[which(data_df$country_region == 'United Kingdom' & 
                               data_df$sub_region_1 == 'Greater London'
                               
-                              ),]
+                              ),] # %>% distinct(sub_region_2)
 ```
+
+*Now please uncomment the last line of the previous two chunks and run them again. You should see only one value -- the sub region that you've picked*
 
 ```{r quiz-renaming-variables, echo = FALSE}
 quiz(
@@ -126,13 +124,46 @@ quiz(
 
 ## Creating time series objects
 
-```{r}
+```{r quiz-ts-objects, echo = FALSE}
+quiz(
+  question(
+    "What feature is common for all ts objects?",
+    answer("Large size of the created object"),
+    answer("Special NA-like values for skipped dates/times"),
+    answer("They only support real numbers"),
+    answer("Index of times/dates", correct = TRUE)
+  ),
+  caption = 'Renaming variables'
+)
+```
 
+## Grand finale
+
+Please filter the data set by a sub region of Greater London of your choice. Then apply   ```gg_tsdisplay()``` function to one of the places included in the sample.
+
+Sub regions:
+
+```{r}
+data_tbl %>% 
+  filter(country_region == 'United Kingdom',
+         sub_region_1 == 'Greater London') %>% 
+  distinct(sub_region_2)
+```
+
+```{r}
+data_tbl %>% 
+  colnames %>% 
+  as_tibble() %>% 
+  rename(places = value)
 ```
 
 
-## ACF plots
+```{r plot, exercise = TRUE, exercise.lines = 10}
+data_tbl %>% 
+  filter(country_region == 'United Kingdom',
+         sub_region_1 == 'Greater London'
+         
+         ) %>% 
+  as_tsibble(index = date) 
+```
 
-
-
-## Unit root testing
