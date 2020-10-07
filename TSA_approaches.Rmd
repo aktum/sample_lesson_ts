@@ -1,0 +1,141 @@
+---
+title: "Time Series Analysis in R: Comparison of Approaches"
+author: "Artemiy Tumanyants"
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if (!requireNamespace("xts","tidyverse","tsibble","tseries","feasts"))
+  install.packages(c("xts","tidyverse","tsibble","tseries"))
+
+library(xts)
+library(tseries)
+library(tsibble)
+library(feasts)
+library(tidyverse)
+```
+
+## Getting the data into R
+
+```{r base_get_data}
+data_df <- read.csv('https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',
+                    stringsAsFactors = T)
+
+data_df$date <- as.Date.character(data_df$date)
+summary(data_df)
+```
+
+
+```{r tidy_get_data}
+data_tbl <-
+  read_csv(
+    'https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',
+    col_types = cols(
+      date = col_date(),
+      country_region = col_character(),
+      sub_region_1 = col_character(),
+      sub_region_2 = col_character(),
+      retail_and_recreation_percent_change_from_baseline = col_double(),
+      grocery_and_pharmacy_percent_change_from_baseline = col_double(),
+      parks_percent_change_from_baseline  = col_double(),
+      transit_stations_percent_change_from_baseline = col_double(),
+      workplaces_percent_change_from_baseline = col_double(),
+      residential_percent_change_from_baseline = col_double(),
+      .default = '_'
+    )
+  )
+data_tbl
+```
+
+
+## Filtering data
+
+```{r base_filter}
+filtered_data_df <- data_df[which(data_df$country_region == 'United Kingdom' & 
+                              data_df$sub_region_1 == 'Greater London' &
+                                data_df$sub_region_2 == 'City of London'),]
+
+colnames(filtered_data_df)[9:14] <- gsub("_percent_change_from_baseline",
+                                      "",
+                                      colnames(filtered_data_df)[9:14])
+
+filtered_data_df <- filtered_data_df[,which(colnames(filtered_data_df) == 'date'):
+                                       ncol(filtered_data_df)]
+
+filtered_data_df
+```
+
+```{r tidy_filter}
+filtered_data_tbl <- data_tbl %>% 
+  filter(country_region == 'United Kingdom',
+         sub_region_1 == 'Greater London',
+         sub_region_2 == 'City of London') %>% 
+  rename_with(~gsub("_percent_change_from_baseline","",.x)) %>% 
+  select(date, retail_and_recreation:residential)
+
+filtered_data_tbl
+```
+
+```{r ggplot}
+filtered_data_tbl %>% 
+  pivot_longer(retail_and_recreation:residential, names_to = 'place') %>% 
+  na.omit %>% 
+  ggplot(aes(x = date, y = value, color = place))+
+  geom_line() +
+  labs(title = 'Change in number of visitors in London by the type of place')
+```
+
+## Creating time series objects
+
+```{r zoo_object}
+data_ts <- zoo(filtered_data_df$parks, order.by = filtered_data_df$date)
+data_ts <- na.omit(data_ts)
+plot(data_ts)
+```
+
+```{r tsibble_object}
+data_tsbl <- filtered_data_tbl %>% 
+  as_tsibble(index = date) %>% 
+  select(date,parks) %>% 
+  fill_gaps() %>% 
+  tidyr::fill(parks, .direction = "down")
+
+data_tsbl %>% 
+  autoplot(parks)
+```
+
+## ACF plots
+
+```{r zoo_acf}
+acf(data_ts)
+```
+
+```{r tsbl_acf}
+data_tsbl %>% 
+  gg_tsdisplay(parks)
+```
+
+## Unit root testing
+
+```{r zoo_kpss}
+tseries::kpss.test(data_ts)
+```
+
+```{r tsbl_kpss}
+data_tsbl %>% 
+  features(parks, unitroot_kpss)
+```
+
+
+## Xts plotting
+
+```{r xts}
+data_xts <- xts(x = filtered_data_df$parks,order.by = filtered_data_df$date)
+plot(data_xts)
+```
+
+```{r}
+plot(data_xts['2020-06-01/'])
+```
+

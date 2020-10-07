@@ -1,0 +1,137 @@
+---
+title: "Time Series Analysis in R: Comparison of Approaches"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+gradethis::gradethis_setup()
+
+knitr::opts_chunk$set(echo = TRUE)
+
+# if (!requireNamespace("xts","tidyverse","tsibble","tseries","feasts"))
+#   install.packages(c("xts","tidyverse","tsibble","tseries"), 
+#                    repos = 'https://stat.ethz.ch/CRAN/')
+
+library(xts)
+library(tseries)
+library(tsibble)
+library(feasts)
+library(tidyverse)
+
+data_tbl <-
+  read_csv(
+    'https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',
+    col_types = cols(
+      date = col_date(),
+      country_region = col_character(),
+      sub_region_1 = col_character(),
+      sub_region_2 = col_character(),
+      retail_and_recreation_percent_change_from_baseline = col_double(),
+      grocery_and_pharmacy_percent_change_from_baseline = col_double(),
+      parks_percent_change_from_baseline  = col_double(),
+      transit_stations_percent_change_from_baseline = col_double(),
+      workplaces_percent_change_from_baseline = col_double(),
+      residential_percent_change_from_baseline = col_double(),
+      .default = '_'
+    )
+  )
+
+data_df <- as.data.frame(data_tbl)
+data_df$date <- as.character(data_df$date)
+```
+
+
+## Getting data into R
+
+Please answer the questions below about ```readr::read_csv``` and ```base::read.csv```. You can use the R console to get access to documentation, e.g. ```?readr::read_csv```.
+
+```{r scratchpad-1, exercise = TRUE}
+
+```
+
+
+```{r quiz-read-csv,echo=FALSE}
+quiz(
+  question("What column type is used for dates in readr::read_csv ?",
+    answer("col_character()"),
+    answer("col_double()"),
+    answer("col_date()", correct = TRUE),
+    answer("col_factor()")
+  ),
+  question("Can the first argument of read.csv be a url, instead of file path?",
+    answer("Yes", correct = TRUE),
+    answer("No"),
+    answer("No clue. How do I find out?",
+           message = 'Try ?read.csv. Arguments description says "file can also be a complete URL."')
+  ),
+  caption = 'The use of read.csv and read_csv'
+)
+```
+
+## Filtering data
+
+You will now be asked to filter the data using both tidy and base approaches. Below you can see various regions of Greater London to choose from.
+
+```{r}
+data_tbl %>% 
+  filter(country_region == 'United Kingdom',
+         sub_region_1 == 'Greater London') %>% 
+  distinct(sub_region_2)
+```
+
+```{r filter-tbl, exercise = TRUE, eval=TRUE}
+data_tbl %>% 
+  filter(country_region == 'United Kingdom',
+         sub_region_1 == 'Greater London'
+         
+         )
+```
+
+```{r filter-tbl-check}
+grade_result(
+  pass_if(nrow(distinct(select(.result, sub_region_2))) == 1)
+)
+```
+
+```{r filter-base, exercise = TRUE, eval = TRUE}
+data_df[which(data_df$country_region == 'United Kingdom' & 
+                              data_df$sub_region_1 == 'Greater London'
+                              
+                              ),]
+```
+
+```{r quiz-renaming-variables, echo = FALSE}
+quiz(
+  question(
+    "Which commmand is used to rename variables in the tidyverse?",
+    answer("select"),
+    answer("filter"),
+    answer("rename", correct = TRUE),
+    answer("pivot_longer")
+  ),
+  question(
+    "How do you access coulmn names in a dataframe using a base approach?",
+    answer("rownames"),
+    answer("colnames", correct = TRUE),
+    answer("head"),
+    answer("as.data.frame")
+  ),
+  caption = 'Renaming variables'
+)
+```
+
+
+## Creating time series objects
+
+```{r}
+
+```
+
+
+## ACF plots
+
+
+
+## Unit root testing

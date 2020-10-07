@@ -1,0 +1,86 @@
+---
+title: "Time series analysis in R using Tidyverse"
+author: "Artemiy Tumanyants"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if (!requireNamespace(c("tidyverse","zoo")))
+  install.packages(c("tidyverse","zoo"))
+```
+
+## Load tidyverse package collection and the data
+
+```{r}
+library(tidyverse)
+data <- read_csv('https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv')
+data
+```
+
+## Filter the data
+
+```{r}
+clean_data <- data %>% 
+  filter(country_region == 'United Kingdom',
+         date >= '2020-06-01',
+         sub_region_1 == 'Greater London') %>% 
+  rename_with(~gsub("_percent_change_from_baseline","",.x))
+
+clean_data %>% glimpse
+
+# clean_data %>% filter(date == '2020-06-01') %>%  glimpse
+```
+
+## Plot the data
+
+```{r}
+clean_data %>% 
+  select(country_region,
+         date,
+         retail_and_recreation
+         ) %>% 
+  ggplot(aes(x = date,y = retail_and_recreation))+
+  geom_line()
+```
+
+
+## Tidy the data more
+
+```{r}
+clean_date_grouped <- clean_data %>% 
+  select(date:residential) %>% 
+  na.omit() %>% 
+  group_by(date) %>% 
+  summarize(across(retail_and_recreation:residential,~median(.x)), .groups = 'keep')
+```
+
+
+
+## Plot the aggregated data set
+
+```{r}
+clean_date_grouped %>% 
+  pivot_longer(retail_and_recreation:residential,
+               names_to = 'indicator') %>% 
+  ggplot(aes(x = date,y = value, color = indicator))+
+  geom_line()
+```
+
+## Apply 7-day smoothing
+
+```{r}
+smooth_data <- clean_date_grouped %>% 
+  ungroup() %>% 
+  mutate(across(retail_and_recreation:residential, ~zoo::rollmean(.x,k=7,fill = NA)))
+```
+
+```{r}
+smooth_data %>% 
+  pivot_longer(retail_and_recreation:residential,
+               names_to = 'indicator') %>% 
+  na.omit() %>% 
+  ggplot(aes(x = date,y = value, color = indicator))+
+  geom_line()
+```
+
